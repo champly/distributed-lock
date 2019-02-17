@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// docker search grokzen/redis-cluster
+// docker run --rm --name redis-cluster -p 7000:7000 -p 7001:7001 -p 7002:7002 -p 7003:7003 -p 7004:7004 -p 7005:7005 -e "IP=0.0.0.0" grokzen/redis-cluster
 func TestGet(t *testing.T) {
 	client := NewLockerCluster([]string{
 		"192.168.50.48:7000",
