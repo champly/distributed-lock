@@ -10,13 +10,7 @@ import (
 )
 
 func createScript() *redis.Script {
-	script := redis.NewScript(`
-		-- setnx key value
-		-- 只有在 key 不存在时设置 key 的值。
-		-- expire key seconds
-		-- 为给定key设置过期时间，以秒计。
-
-		local key = tostring(KEYS[1])
+	script := redis.NewScript(` local key = tostring(KEYS[1])
 		local value = tostring(KEYS[2])
 		local expireTime = tonumber(ARGV[1])
 
@@ -34,7 +28,7 @@ func createScript() *redis.Script {
 
 func createScriptDel() *redis.Script {
 	script := redis.NewScript(`
-		local key = tostring(keys[1])
+		local key = tostring(KEYS[1])
 
 		return redis.call("del", key)
 	`)
@@ -78,18 +72,16 @@ func getLock(index string) bool {
 }
 
 func delLock() bool {
-	redisCluster.Del(lockKey)
-	return false
-	// ret := redisCluster.EvalSha(scriptDel, []string{
-	// lockKey,
-	// })
+	ret := redisCluster.EvalSha(scriptDel, []string{
+		lockKey,
+	})
 
-	// if result, err := ret.Result(); err != nil {
-	// return false
-	// } else {
-	// fmt.Println(result)
-	// return true
-	// }
+	if result, err := ret.Result(); err != nil {
+		return false
+	} else {
+		fmt.Println(result)
+		return true
+	}
 }
 
 func main() {
@@ -109,14 +101,14 @@ func main() {
 	scriptDel = scriptCacheToCluster(redisCluster, createScriptDel())
 
 	wait := sync.WaitGroup{}
-	count := 10
+	count := 3
 	wait.Add(count)
 	for i := 0; i < count; i++ {
 		go func(i int) {
 			for {
 				if getLock(fmt.Sprintf("%d", i)) {
 					fmt.Printf("goroutine %d get lock\n", i)
-					if i != 5 {
+					if i != 2 {
 						time.Sleep(time.Second * 1)
 						fmt.Printf("goroutine %d exec succ, del lock key\n", i)
 						delLock()
